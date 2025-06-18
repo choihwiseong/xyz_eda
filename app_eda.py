@@ -489,7 +489,7 @@ class PopulationEDA:
         ])
 
         with tab1:
-            st.header("📊 Basic Statistics")
+            st.header("📊 기초통계")
             with st.expander("DataFrame Info"):
                 buf = io.StringIO()
                 df.info(buf=buf)
@@ -504,7 +504,7 @@ class PopulationEDA:
             st.write(f"Duplicated rows: {df.duplicated().sum()}")
 
         with tab2:
-            st.header("📈 National Population Trend & Forecast")
+            st.header("📈 연도별 추이")
             national = df[df['지역'] == '전국']
             fig, ax = plt.subplots()
             sns.lineplot(data=national, x='연도', y='인구', ax=ax)
@@ -521,7 +521,7 @@ class PopulationEDA:
             st.pyplot(fig)
 
         with tab3:
-            st.header("📉 Regional Population Change")
+            st.header("📉 지역별 분석")
             recent_years = sorted(df['연도'].unique())[-5:]
             recent_df = df[df['연도'].isin(recent_years)]
             pivot = recent_df.pivot(index='영문지역', columns='연도', values='인구')
@@ -548,7 +548,7 @@ class PopulationEDA:
             """)
 
         with tab4:
-            st.header("🔍 Top 100 Yearly Changes")
+            st.header("🔍 변화량 분석")
             df_local = df[df['지역'] != '전국'].copy()
             df_local = df_local.sort_values(['지역', '연도'])
             df_local['증감'] = df_local.groupby('지역')['인구'].diff()
@@ -566,7 +566,7 @@ class PopulationEDA:
             )
 
         with tab5:
-            st.header("📊 Regional Population Visualization")
+            st.header("📊 시각화")
             pivot = df.pivot(index='연도', columns='영문지역', values='인구')
             pivot = pivot.drop(columns='Nationwide', errors='ignore')
             pivot = pivot.fillna(0)
