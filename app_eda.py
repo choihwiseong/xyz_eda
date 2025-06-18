@@ -553,14 +553,14 @@ class PopulationEDA:
             df_local = df_local.sort_values(['지역', '연도'])
             df_local['증감'] = df_local.groupby('지역')['인구'].diff()
             df_local['절댓값'] = df_local['증감'].abs()
-            df_local['지역'] = df_local['지역'].map(region_map).fillna(df_local['지역'])
+            df_local['region'] = df_local['지역'].map(region_map).fillna(df_local['지역'])
             top100 = df_local.sort_values('절댓값', ascending=False).head(100)
 
             def color_diff(val):
                 return f'background-color: {"#add8e6" if val > 0 else "#ffb6c1"}'
 
             st.dataframe(
-                top100[['연도', '지역', '인구', '증감']].style
+                top100[['연도', 'region', '인구', '증감']].style
                 .format({"증감": "{:,}"})
                 .applymap(color_diff, subset=['증감'])
             )
