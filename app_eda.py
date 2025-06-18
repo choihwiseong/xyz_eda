@@ -6,6 +6,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.font_manager as fm
+
+# 1. 사용할 한글 폰트 지정 (예: 나눔고딕)
+plt.rcParams['font.family'] = 'NanumGothic'
+
+# 2. 마이너스 기호 깨짐 방지
+plt.rcParams['axes.unicode_minus'] = False
 
 # ---------------------
 # Firebase 설정
