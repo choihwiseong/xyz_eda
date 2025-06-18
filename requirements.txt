@@ -4,3 +4,5 @@ numpy
 matplotlib
 seaborn
 pyrebase
+pycryptodome
+oauth2client
