@@ -449,6 +449,92 @@ class EDA:
                 > - 극단치의 영향이 완화되어 이후 분석·모델링 안정성이 높아집니다.
                 """)
 
+# ---------------------
+# 새로운 EDA 클래스 (population_trends.csv 전용)
+# ---------------------
+class PopulationEDA:
+    def __init__(self):
+        st.title("📊 지역별 인구 EDA 분석")
+        uploaded_file = st.file_uploader("population_trends.csv 업로드", type="csv", key="popeda")
+        if uploaded_file:
+            df = pd.read_csv(uploaded_file)
+            df = df.replace('-', 0)
+            df[['인구', '출생아수(명)', '사망자수(명)']] = df[['인구', '출생아수(명)', '사망자수(명)']].astype(int)
+
+            tab1, tab2, tab3, tab4, tab5 = st.tabs([
+                "기초 통계", "연도별 추이", "지역별 분석", "변화량 분석", "시각화"
+            ])
+
+            with tab1:
+                st.subheader("기초 통계")
+                with st.expander("df.info 결과 보기"):
+                    buf = io.StringIO()
+                    df.info(buf=buf)
+                    st.text(buf.getvalue())
+
+                st.write("통계 요약")
+                st.dataframe(df.describe())
+                st.write("결측치:")
+                st.write(df.isnull().sum())
+                st.write(f"중복 행 수: {df.duplicated().sum()}")
+
+            with tab2:
+                st.subheader("전국 인구 추이 및 2035 예측")
+                national = df[df['지역'] == '전국']
+                fig, ax = plt.subplots()
+                sns.lineplot(data=national, x='연도', y='인구', ax=ax)
+                recent = national.sort_values('연도').tail(3)
+                mean_net = (recent['출생아수(명)'] - recent['사망자수(명)']).mean()
+                future = national['인구'].iloc[-1] + (2035 - national['연도'].iloc[-1]) * mean_net
+                ax.plot(2035, future, 'ro')
+                ax.text(2035, future, f"2035 Pred: {int(future):,}")
+                st.pyplot(fig)
+
+            with tab3:
+                st.subheader("최근 5년 인구 변화량 순위")
+                recent_years = sorted(df['연도'].unique())[-5:]
+                recent_df = df[df['연도'].isin(recent_years)]
+                pivot = recent_df.pivot(index='지역', columns='연도', values='인구')
+                pivot = pivot.drop('전국', errors='ignore')
+                delta = pivot[recent_years[-1]] - pivot[recent_years[0]]
+                delta_sorted = delta.sort_values(ascending=False)
+                fig1, ax1 = plt.subplots()
+                sns.barplot(x=delta_sorted.values / 1000, y=delta_sorted.index, ax=ax1)
+                ax1.set_xlabel("Change (thousand)")
+                st.pyplot(fig1)
+
+                st.subheader("변화율 순위")
+                rate = ((pivot[recent_years[-1]] - pivot[recent_years[0]]) / pivot[recent_years[0]]) * 100
+                rate_sorted = rate.sort_values(ascending=False)
+                fig2, ax2 = plt.subplots()
+                sns.barplot(x=rate_sorted.values, y=rate_sorted.index, ax=ax2)
+                ax2.set_xlabel("Change Rate (%)")
+                st.pyplot(fig2)
+
+            with tab4:
+                st.subheader("증감률 상위 100건")
+                temp_df = df[df['지역'] != '전국'].copy()
+                temp_df = temp_df.sort_values(['지역', '연도'])
+                temp_df['증감'] = temp_df.groupby('지역')['인구'].diff()
+                top100 = temp_df.sort_values('증감', ascending=False).head(100)
+
+                def highlight(val):
+                    color = '#add8e6' if val > 0 else '#ffb6c1'
+                    return f'background-color: {color}'
+
+                st.dataframe(top100.style.format({"증감": "{:,}"}).applymap(highlight, subset=['증감']))
+
+            with tab5:
+                st.subheader("지역별 인구 누적 영역 그래프")
+                pivot = df.pivot(index='연도', columns='지역', values='인구')
+                pivot = pivot.fillna(0)
+                pivot = pivot.drop(columns='전국', errors='ignore')
+                fig, ax = plt.subplots(figsize=(10, 6))
+                pivot.plot.area(ax=ax)
+                ax.set_title("Population by Region")
+                st.pyplot(fig)
+        else:
+            st.info("population_trends.csv 파일을 업로드하세요.")
 
 # ---------------------
 # 페이지 객체 생성
@@ -460,12 +546,13 @@ Page_Home     = st.Page(lambda: Home(Page_Login, Page_Register, Page_FindPW), ti
 Page_User     = st.Page(UserInfo, title="My Info", icon="👤", url_path="user-info")
 Page_Logout   = st.Page(Logout,   title="Logout",  icon="🔓", url_path="logout")
 Page_EDA      = st.Page(EDA,      title="EDA",     icon="📊", url_path="eda")
+Page_PopEDA = st.Page(PopulationEDA, title="Population EDA", icon="🌍", url_path="popeda")
 
 # ---------------------
 # 네비게이션 실행
 # ---------------------
 if st.session_state.logged_in:
-    pages = [Page_Home, Page_User, Page_Logout, Page_EDA]
+    pages = [Page_Home, Page_User, Page_Logout, Page_EDA, Page_PopEDA]
 else:
     pages = [Page_Home, Page_Login, Page_Register, Page_FindPW]
 
