@@ -4,7 +4,4 @@ numpy
 matplotlib
 seaborn
 pyrebase4
-gcloud
-oauth2client
-pycryptodome
-requests_toolbelt
+setuptools
