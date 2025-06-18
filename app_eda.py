@@ -568,16 +568,16 @@ class PopulationEDA:
         with tab5:
             st.header("📊 시각화")
 
-        pivot = df.pivot(index='연도', columns='region', values='인구')
-        pivot = pivot.drop(columns='Nationwide', errors='ignore')
-        pivot = pivot.fillna(0)
+            pivot = df.pivot(index='연도', columns='region', values='인구')
+            pivot = pivot.drop(columns='Nationwide', errors='ignore')
+            pivot = pivot.fillna(0)
 
-        fig, ax = plt.subplots(figsize=(10, 6))
-        pivot.plot(ax=ax)  # 기본은 line plot
-        ax.set_title("Population Trends by Region")
-        ax.set_ylabel("Population")
-        ax.set_xlabel("Year")
-        st.pyplot(fig)
+            fig, ax = plt.subplots(figsize=(10, 6))
+            pivot.plot(ax=ax)  # 기본은 line plot
+            ax.set_title("Population Trends by Region")
+            ax.set_ylabel("Population")
+            ax.set_xlabel("Year")
+            st.pyplot(fig)
 
 
 # ---------------------
