@@ -566,7 +566,7 @@ class PopulationEDA:
 
         with tab5:
             st.header("📊 Regional Population Visualization")
-            pivot = df.pivot(index='연도', columns='영문지역', values='인구')
+            pivot = df.pivot(index='연도', columns='region', values='인구')
             pivot = pivot.drop(columns='Nationwide', errors='ignore')
             pivot = pivot.fillna(0)
 
