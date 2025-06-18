@@ -481,7 +481,7 @@ class PopulationEDA:
         df[required_cols] = df[required_cols].apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
 
         # Translate region names
-        df['영문지역'] = df['지역'].map(region_map).fillna(df['지역'])
+        df['region'] = df['지역'].map(region_map).fillna(df['지역'])
 
         # UI Tabs
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -524,7 +524,7 @@ class PopulationEDA:
             st.header("📉 지역별 분석")
             recent_years = sorted(df['연도'].unique())[-5:]
             recent_df = df[df['연도'].isin(recent_years)]
-            pivot = recent_df.pivot(index='영문지역', columns='연도', values='인구')
+            pivot = recent_df.pivot(index='region', columns='연도', values='인구')
             pivot = pivot.drop('Nationwide', errors='ignore')
 
             delta = pivot[recent_years[-1]] - pivot[recent_years[0]]
@@ -553,21 +553,21 @@ class PopulationEDA:
             df_local = df_local.sort_values(['지역', '연도'])
             df_local['증감'] = df_local.groupby('지역')['인구'].diff()
             df_local['절댓값'] = df_local['증감'].abs()
-            df_local['영문지역'] = df_local['지역'].map(region_map).fillna(df_local['지역'])
+            df_local['region'] = df_local['지역'].map(region_map).fillna(df_local['지역'])
             top100 = df_local.sort_values('절댓값', ascending=False).head(100)
 
             def color_diff(val):
                 return f'background-color: {"#add8e6" if val > 0 else "#ffb6c1"}'
 
             st.dataframe(
-                top100[['연도', '영문지역', '인구', '증감']].style
+                top100[['연도', 'region', '인구', '증감']].style
                 .format({"증감": "{:,}"})
                 .applymap(color_diff, subset=['증감'])
             )
 
         with tab5:
             st.header("📊 시각화")
-            pivot = df.pivot(index='연도', columns='영문지역', values='인구')
+            pivot = df.pivot(index='연도', columns='region', values='인구')
             pivot = pivot.drop(columns='Nationwide', errors='ignore')
             pivot = pivot.fillna(0)
 
