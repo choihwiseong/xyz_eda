@@ -8,11 +8,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.font_manager as fm
 
-# 1. 사용할 한글 폰트 지정 (예: 나눔고딕)
-plt.rcParams['font.family'] = 'NanumGothic'
-
-# 2. 마이너스 기호 깨짐 방지
-plt.rcParams['axes.unicode_minus'] = False
 
 # ---------------------
 # Firebase 설정
@@ -459,6 +454,13 @@ class EDA:
 # ---------------------
 # 새로운 EDA 클래스 (population_trends.csv 전용)
 # ---------------------
+region_map = {
+    '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon', '광주': 'Gwangju',
+    '대전': 'Daejeon', '울산': 'Ulsan', '세종': 'Sejong', '경기': 'Gyeonggi', '강원': 'Gangwon',
+    '충북': 'Chungbuk', '충남': 'Chungnam', '전북': 'Jeonbuk', '전남': 'Jeonnam',
+    '경북': 'Gyeongbuk', '경남': 'Gyeongnam', '제주': 'Jeju', '전국': 'Nationwide'
+}
+
 class PopulationEDA:
     def __init__(self):
         st.title("🌍 Population Trends EDA")
@@ -471,19 +473,21 @@ class PopulationEDA:
         # Read CSV
         df = pd.read_csv(uploaded_file)
 
-        # Only for region '세종', replace '-' with 0
+        # Replace '-' with 0 in 세종 only
         df.loc[df['지역'] == '세종'] = df.loc[df['지역'] == '세종'].replace('-', 0)
 
         # Convert to numeric
         required_cols = ['인구', '출생아수(명)', '사망자수(명)']
         df[required_cols] = df[required_cols].apply(pd.to_numeric, errors='coerce').fillna(0).astype(int)
 
+        # Translate region names
+        df['영문지역'] = df['지역'].map(region_map).fillna(df['지역'])
+
         # UI Tabs
         tab1, tab2, tab3, tab4, tab5 = st.tabs([
             "Basic Stats", "Trend", "Region Change", "Top Changes", "Heatmap"
         ])
 
-        # 1. Basic Stats
         with tab1:
             st.header("📊 Basic Statistics")
             with st.expander("DataFrame Info"):
@@ -499,7 +503,6 @@ class PopulationEDA:
             st.write(df.isnull().sum())
             st.write(f"Duplicated rows: {df.duplicated().sum()}")
 
-        # 2. Total Population Trend + Forecast
         with tab2:
             st.header("📈 National Population Trend & Forecast")
             national = df[df['지역'] == '전국']
@@ -509,7 +512,6 @@ class PopulationEDA:
             ax.set_xlabel("Year")
             ax.set_ylabel("Population")
 
-            # Prediction
             recent = national.sort_values('연도').tail(3)
             mean_net = (recent['출생아수(명)'] - recent['사망자수(명)']).mean()
             pred_year = 2035
@@ -518,15 +520,13 @@ class PopulationEDA:
             ax.text(pred_year, pred_pop, f"2035: {int(pred_pop):,}")
             st.pyplot(fig)
 
-        # 3. Region Change (delta and rate)
         with tab3:
             st.header("📉 Regional Population Change")
             recent_years = sorted(df['연도'].unique())[-5:]
             recent_df = df[df['연도'].isin(recent_years)]
-            pivot = recent_df.pivot(index='지역', columns='연도', values='인구')
-            pivot = pivot.drop('전국', errors='ignore')
+            pivot = recent_df.pivot(index='영문지역', columns='연도', values='인구')
+            pivot = pivot.drop('Nationwide', errors='ignore')
 
-            # Change
             delta = pivot[recent_years[-1]] - pivot[recent_years[0]]
             delta_sorted = delta.sort_values(ascending=False)
             fig1, ax1 = plt.subplots()
@@ -535,42 +535,40 @@ class PopulationEDA:
             ax1.set_xlabel("Change (Thousands)")
             st.pyplot(fig1)
 
-            # Rate
             rate = ((pivot[recent_years[-1]] - pivot[recent_years[0]]) / pivot[recent_years[0]]) * 100
             rate_sorted = rate.sort_values(ascending=False)
             fig2, ax2 = plt.subplots()
             sns.barplot(x=rate_sorted.values, y=rate_sorted.index, ax=ax2)
             ax2.set_title("Change Rate (%)")
-            ax2.set_xlabel("Rate (%)")
+            ax2.set_xlabel("Rate of Change (%)")
             st.pyplot(fig2)
 
             st.markdown("""
-            > **Insight:** Regions with higher growth are expanding due to population influx or birth rate; negative rates indicate aging or urban-to-rural migration decline.
+            > **Insight:** Regions with high growth may indicate urbanization, while decreasing areas could reflect aging or migration.
             """)
 
-        # 4. Top 100 changes by diff
         with tab4:
             st.header("🔍 Top 100 Yearly Changes")
             df_local = df[df['지역'] != '전국'].copy()
             df_local = df_local.sort_values(['지역', '연도'])
             df_local['증감'] = df_local.groupby('지역')['인구'].diff()
+            df_local['영문지역'] = df_local['지역'].map(region_map).fillna(df_local['지역'])
             top100 = df_local.sort_values('증감', ascending=False).head(100)
 
             def color_diff(val):
-                color = '#add8e6' if val > 0 else '#ffb6c1'
-                return f'background-color: {color}'
+                return f'background-color: {"#add8e6" if val > 0 else "#ffb6c1"}'
 
             st.dataframe(
-                top100.style.format({"증감": "{:,}"}).applymap(color_diff, subset=['증감'])
+                top100[['연도', '영문지역', '인구', '증감']].style
+                .format({"증감": "{:,}"})
+                .applymap(color_diff, subset=['증감'])
             )
 
-        # 5. Heatmap or Area
         with tab5:
             st.header("📊 Regional Population Visualization")
-            pivot = df.pivot(index='연도', columns='지역', values='인구')
-            pivot = pivot.drop(columns='전국', errors='ignore')
+            pivot = df.pivot(index='연도', columns='영문지역', values='인구')
+            pivot = pivot.drop(columns='Nationwide', errors='ignore')
             pivot = pivot.fillna(0)
-            pivot.columns = [col.encode('latin1', 'ignore').decode('latin1') for col in pivot.columns]  # Remove non-ASCII
 
             fig, ax = plt.subplots(figsize=(10, 6))
             pivot.plot.area(ax=ax)
@@ -578,6 +576,7 @@ class PopulationEDA:
             ax.set_ylabel("Population")
             ax.set_xlabel("Year")
             st.pyplot(fig)
+
 
 
 # ---------------------
