@@ -572,8 +572,8 @@ class PopulationEDA:
             pivot = pivot.fillna(0)
 
             fig, ax = plt.subplots(figsize=(10, 6))
-            pivot.plot.area(ax=ax)
-            ax.set_title("Stacked Area by Region")
+            pivot.plot.bar(stacked=True, ax=ax)  # 👈 stacked bar chart로 변경
+            ax.set_title("Stacked Bar Chart by Region")
             ax.set_ylabel("Population")
             ax.set_xlabel("Year")
             st.pyplot(fig)
